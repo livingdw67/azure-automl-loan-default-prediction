@@ -1,0 +1,23 @@
+# Databricks Asset Bundle for the loan default model (Free Edition, serverless).
+# Deploy:  databricks bundle deploy --profile free
+# Run:     databricks bundle run loan_default_pipeline --profile free
+bundle:
+  name: loan-default
+
+variables:
+  catalog:
+    description: Unity Catalog catalog that holds the schema
+    default: workspace
+  schema:
+    description: Schema for the tables, the raw-file volume and the registered model
+    default: loans
+
+include:
+  - resources/*.yml
+
+targets:
+  dev:
+    mode: development
+    default: true
+    workspace:
+      host: https://dbc-303976ab-2cd1.cloud.databricks.com
