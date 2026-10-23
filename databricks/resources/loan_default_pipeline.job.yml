@@ -1,0 +1,22 @@
+resources:
+  jobs:
+    loan_default_pipeline:
+      name: loan-default-pipeline
+      # Runs on demand: the challenge data is fixed, so there is nothing to schedule.
+      parameters:
+        - name: catalog
+          default: ${var.catalog}
+        - name: schema
+          default: ${var.schema}
+      tasks:
+        - task_key: load
+          notebook_task:
+            notebook_path: ../src/01_load_data.py
+        - task_key: tune_train
+          depends_on: [{ task_key: load }]
+          notebook_task:
+            notebook_path: ../src/02_tune_train.py
+        - task_key: score
+          depends_on: [{ task_key: tune_train }]
+          notebook_task:
+            notebook_path: ../src/03_score.py

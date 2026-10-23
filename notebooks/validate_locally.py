@@ -9,35 +9,19 @@ Usage (train.csv from the data challenge, not included in this repo):
     python validate_locally.py path/to/train.csv
 """
 import sys
+from pathlib import Path
 
-import numpy as np
 import pandas as pd
-from lightgbm import LGBMClassifier
-from sklearn.ensemble import VotingClassifier
-from sklearn.linear_model import LogisticRegression
 from sklearn.metrics import average_precision_score, fbeta_score, precision_score, recall_score, roc_auc_score
 from sklearn.model_selection import StratifiedKFold, cross_val_predict, train_test_split
-from sklearn.pipeline import make_pipeline
-from sklearn.preprocessing import StandardScaler
-from xgboost import XGBClassifier
+
+# Features, the ensemble and the cutoff search are shared with the Databricks pipeline
+sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "databricks" / "src"))
+from loan_lib.evaluate import best_f2_cutoff  # noqa: E402
+from loan_lib.features import engineer_features  # noqa: E402
+from loan_lib.models import stand_in_ensemble as ensemble  # noqa: E402
 
 CUTOFF = 0.15
-
-
-def engineer_features(df):
-    """Same steps as the notebook's no-age variant."""
-    df = df.drop(columns=["id", "date_of_birth", "target"], errors="ignore").copy()
-    df["number_dependants"] = df["number_dependants"].replace(-1, 0)
-    df["total_open_accounts"] = df["number_open_credit_lines"] + df["number_open_loans"]
-    return df
-
-
-def ensemble():
-    return VotingClassifier(voting="soft", estimators=[
-        ("lgbm", LGBMClassifier(n_estimators=300, learning_rate=0.05, num_leaves=31, verbose=-1, random_state=42)),
-        ("xgb", XGBClassifier(n_estimators=300, learning_rate=0.05, max_depth=5, eval_metric="aucpr", random_state=42)),
-        ("lr", make_pipeline(StandardScaler(), LogisticRegression(max_iter=2000))),
-    ])
 
 
 def report(label, y, proba, cutoff):
@@ -45,11 +29,6 @@ def report(label, y, proba, cutoff):
     print(f"{label:<44} cutoff {cutoff:.2f} | captured {recall_score(y, pred):.1%} of defaults | "
           f"precision {precision_score(y, pred):.1%} | F2 {fbeta_score(y, pred, beta=2):.3f} | "
           f"AUC {roc_auc_score(y, proba):.3f} | PR-AUC {average_precision_score(y, proba):.3f}")
-
-
-def best_f2_cutoff(y, proba):
-    cutoffs = np.arange(0.05, 0.60, 0.01)
-    return cutoffs[int(np.argmax([fbeta_score(y, proba >= c, beta=2) for c in cutoffs]))]
 
 
 def main(path):

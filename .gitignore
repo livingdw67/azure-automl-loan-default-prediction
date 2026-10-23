@@ -1,0 +1,13 @@
+# Environments
+.venv/
+venv/
+__pycache__/
+*.pyc
+.pytest_cache/
+
+# The challenge data stays out of this public repo (it lives in the Databricks volume)
+data/
+*.csv
+
+# Databricks bundle local state
+.databricks/
